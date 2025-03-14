@@ -13,6 +13,12 @@ VITE_TRADER_MADE_API_KEY=api_key_sent_in_email
 VITE_TRADER_MADE_SOCKET_KEY=socket_key_sent_in_email
 ```
 
+### cd into the project
+
+```sh
+cd medirect-task
+```
+
 ### Install dependencies
 
 ```sh
