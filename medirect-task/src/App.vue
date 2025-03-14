@@ -1,14 +1,17 @@
 <script setup>
-import Dropdown from './components/Dropdown.vue';
-import { ref, onMounted } from 'vue';
-import PriceChart from './components/PriceChart.vue';
+import Dropdown from "./components/Dropdown.vue";
+import { ref, onMounted } from "vue";
+import PriceChart from "./components/PriceChart.vue";
 
-const FOREX_CURRENCIES_CACHE_KEY = 'forex_currencies';
+const FOREX_CURRENCIES_CACHE_KEY = "forex_currencies";
 const CACHE_EXPIRATION = 1000 * 60 * 60 * 24; // every 24h
 
+const hasApiKey =
+  !!import.meta.env.VITE_TRADER_MADE_API_KEY &&
+  !!import.meta.env.VITE_TRADER_MADE_SOCKET_KEY;
 const currencies = ref([]);
-const selectedBaseCurrency = ref('EUR');
-const selectedQuoteCurrency = ref('PLN');
+const selectedBaseCurrency = ref("EUR");
+const selectedQuoteCurrency = ref("PLN");
 
 const fetchCurrencies = async () => {
   try {
@@ -22,7 +25,9 @@ const fetchCurrencies = async () => {
     }
 
     const response = await fetch(
-      `https://marketdata.tradermade.com/api/v1/live_currencies_list?api_key=${import.meta.env.VITE_TRADER_MADE_API_KEY}`,
+      `https://marketdata.tradermade.com/api/v1/live_currencies_list?api_key=${
+        import.meta.env.VITE_TRADER_MADE_API_KEY
+      }`
     );
 
     if (!response.ok) {
@@ -31,46 +36,66 @@ const fetchCurrencies = async () => {
 
     const data = await response.json();
 
-    currencies.value = Object.entries(data.available_currencies).map(([code, name]) => ({
-      code,
-      name,
-    }));
+    currencies.value = Object.entries(data.available_currencies).map(
+      ([code, name]) => ({
+        code,
+        name,
+      })
+    );
     localStorage.setItem(
       FOREX_CURRENCIES_CACHE_KEY,
-      JSON.stringify({ data: currencies.value, timestamp: Date.now() }),
+      JSON.stringify({ data: currencies.value, timestamp: Date.now() })
     );
   } catch (error) {
-    console.error('Error fetching currencies:', error);
+    console.error("Error fetching currencies:", error);
   }
 };
 
-onMounted(fetchCurrencies);
+onMounted(() => {
+  if (hasApiKey) {
+    fetchCurrencies();
+  }
+});
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col justify-center max-w-[900px] mx-auto">
-    <header class="p-4">
-      <h1 class="text-3xl md:text-5xl font-bold">Forex Exchange</h1>
-      <p class="text-small text-gray-600">Check out the current price for a currency pair</p>
-    </header>
-    <main class="flex flex-col-reverse md:flex-row w-full justify-center items-center p-4 gap-4">
-      <div class="flex flex-col gap-4 w-[90%] md:max-w-xs">
-        <Dropdown
-          v-model="selectedBaseCurrency"
-          :currencies="currencies"
-          :otherCurrency="selectedQuoteCurrency"
-        />
-        <Dropdown
-          v-model="selectedQuoteCurrency"
-          :currencies="currencies"
-          :otherCurrency="selectedBaseCurrency"
-        />
-      </div>
+    <template v-if="hasApiKey">
+      <header class="p-4">
+        <h1 class="text-3xl md:text-5xl font-bold">Forex Exchange</h1>
+        <p class="text-small text-gray-600">
+          Check out the current price for a currency pair
+        </p>
+      </header>
+      <main
+        class="flex flex-col-reverse md:flex-row w-full justify-center items-center p-4 gap-4"
+      >
+        <div class="flex flex-col gap-4 w-[90%] md:max-w-xs">
+          <Dropdown
+            v-model="selectedBaseCurrency"
+            :currencies="currencies"
+            :otherCurrency="selectedQuoteCurrency"
+          />
+          <Dropdown
+            v-model="selectedQuoteCurrency"
+            :currencies="currencies"
+            :otherCurrency="selectedBaseCurrency"
+          />
+        </div>
 
-      <PriceChart
-        :selectedBaseCurrency="selectedBaseCurrency"
-        :selectedQuoteCurrency="selectedQuoteCurrency"
-      />
-    </main>
+        <PriceChart
+          :selectedBaseCurrency="selectedBaseCurrency"
+          :selectedQuoteCurrency="selectedQuoteCurrency"
+        />
+      </main>
+    </template>
+    <template v-else>
+      <div class="text-center p-4">
+        <h1 class="text-3xl font-bold text-red-600">Missing API Keys</h1>
+        <p class="mt-2">
+          Please add api keys sent in the email and restart the application.
+        </p>
+      </div>
+    </template>
   </div>
 </template>
